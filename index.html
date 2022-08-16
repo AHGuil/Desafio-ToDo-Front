@@ -17,6 +17,7 @@
   <body>
     <div id="app"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.27.2/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script>
       new Vue({
@@ -27,46 +28,69 @@
             <hr />
             <div class="form-gerenciador form-group">
               <p>
-                <input placeholder="Tarefa" type="text" name="task" class="form-control" v-model="descricao" />
+                <input placeholder="Tarefa" type="text" name="task" class="form-control" autofocus v-model="name" @keyup.enter="addTask"/>
               </p>
               <button type="submit" v-on:click="addTask" class="btn btn-primary">Inclui</button>
               <hr />
             </div>
 
             <div class="list-group">
-              <div class="list-group-item" v-for="(tarefa, index) in tarefas">
-                <input class="status" type="checkbox" v-model="tarefa.status">
-                <span class="descricao"><strong>{{ tarefa.descricao }}</strong></span>
-                
+              <div class="list-group-item" v-for="(tarefa, tarefas) in tarefas" :key="tarefa.id">
+                <input class="status" type="checkbox" v-model="tarefa.status" true-value=1 false-value=0 v-on:click="updateTask(tarefa)">
+                <span class="name"><strong>{{ tarefa.name }}</strong></span>
+
                 <div>
-                  <a href="#" title="Excluir" v-on:click.prevent="removeTask(index)">Excluir</a>
+                  <a href="#" title="Excluir" v-on:click.prevent="removeTask(tarefa)">Excluir</a>
                 </div>
               </div>
-            </div>            
+            </div>
           </div>
         `,
         data() {
           return {
             tarefas: [],
-            descricao: '',
+            id: '',
+            name: '',
             status: false
           }
         },
+        mounted() {
+          this.listTasks()
+        },
         methods: {
+          listTasks() {
+            axios
+              .get('http://localhost:8000/api/tasks')
+              .then(resposta => (this.tarefas = resposta.data))
+          },
           addTask() {
-            if (this.descricao.trim() === '') {
+            if (this.name.trim() === '') {
               return
             }
 
-            this.tarefas.push({
-              descricao: this.descricao,
-              status: this.status
-            })
+            axios
+              .post(
+                'http://localhost:8000/api/tasks?name=' +
+                  this.name +
+                  '&status=0'
+              )
+              .then(resposta => (this.tarefas = resposta.data.id))
 
-            this.descricao = ''
+            this.listTasks()
           },
-          removeTask(index) {
-            this.tarefas.splice(index, 1)
+          updateTask(tarefa) {
+            this.tarefa = tarefa
+            this.param = { status: this.tarefa.status == 1 ? 0 : 1 }
+            axios.put(
+              'http://localhost:8000/api/tasks/' + this.tarefa.id,
+              this.param
+            )
+          },
+          removeTask(tarefa) {
+            this.tarefa = tarefa
+
+            axios.delete('http://localhost:8000/api/tasks/' + this.tarefa.id)
+            // .then(resposta => (this.tarefas = resposta.data))
           }
         }
       })
